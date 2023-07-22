@@ -3,6 +3,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from "rea
 import PropTypes, { oneOfType } from "prop-types";
 import { Row } from "react-bootstrap";
 import LoadingIcons from "react-loading-icons";
+import { Resizable } from "re-resizable";
 
 import { THEME_STATES } from "../ThemeContext/THEME_STATES";
 import { ThemeContext } from "../ThemeContext/ThemeContext";
@@ -118,18 +119,10 @@ export function Viewer({ fileInfo, prettifyLog, logEventNumber, timestamp }) {
         msgLogger.current.add(statusMessage);
     }, [statusMessage]);
 
-    const clickItem = useCallback((pageNum, lineNum) => {
-        if (logFileState.page !== pageNum) {
-            clpWorker.current.postMessage({
-                code: CLP_WORKER_PROTOCOL.CHANGE_PAGE,
-                page: pageNum,
-                linePos: 'top',
-            });
-        }
-
+    const clickItem = useCallback((eventIndex) => {
         clpWorker.current.postMessage({
             code: CLP_WORKER_PROTOCOL.GET_LINE_FROM_EVENT,
-            desiredLogEventIdx: lineNum,
+            desiredLogEventIdx: eventIndex,
         });
     }, [logFileState, loadingLogs]);
 
@@ -295,15 +288,16 @@ export function Viewer({ fileInfo, prettifyLog, logEventNumber, timestamp }) {
                 </div>
             }
             {false === loadingFile &&
-                <div className="d-flex h-100 flex-row">
+                <div className="d-flex h-100 flex-row overflow-hidden">
+                    <div className="h-100">
+                        <SideBar
+                            changeStateCallback={changeState}
+                            searchResults={searchResults}
+                            clickItemCallback={clickItem}
+                        />
+                    </div>
 
-                    <SideBar
-                        changeStateCallback={changeState}
-                        searchResults={searchResults}
-                        clickItemCallback={clickItem}
-                    />
-
-                    <div className="flex-fill h-100">
+                    <div style={{width:"100%", height: "100%", overflow:"hidden"}}>
                         <div className="d-flex h-100 flex-column">
                             <MenuBar
                                 loadingLogs={loadingLogs}

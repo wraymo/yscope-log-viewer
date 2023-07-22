@@ -332,11 +332,12 @@ class FileManager {
             return;
         }
 
+        let numSearchResults = 0;
+
         this._outputResizableBuffer = new ResizableUint8Array(1000000);
 
         for (let i = 0; i < this.state.pages; i++) {
             let searchResults = [];
-            let lineNum = 1;
             const logEventsBeginIdx = i * this.state.pageSize;
             const numOfEvents = Math.min(this.state.pageSize, numEventsAtLevel - logEventsBeginIdx);
 
@@ -344,7 +345,7 @@ class FileManager {
             this._irStreamReader = new FourByteClpIrStreamReader(dataInputStream,
                 this.state.prettify ? this._prettifyLogEventContent : null);
 
-            for (let j = logEventsBeginIdx; j < logEventsBeginIdx + numOfEvents; j++, lineNum++) {
+            for (let j = logEventsBeginIdx; j < logEventsBeginIdx + numOfEvents; j++) {
                 const event = this._logEventOffsetsFiltered[j];
                 const decoder = this._irStreamReader._streamProtocolDecoder;
     
@@ -369,7 +370,12 @@ class FileManager {
                     lastEvent.mappedIndex = event.mappedIndex;
 
                     if (match) {
-                        searchResults.push({lineNum: lineNum, content: contentString});
+                        searchResults.push({eventIndex: j, content: contentString});
+                        numSearchResults++;
+                        if (numSearchResults >= 1000 && searchResults.length > 0) {
+                            this._updateSearchResultsCallback(i, searchResults);
+                            return;
+                        }
                     }
                 } catch (error) {
                     // Ignore EOF errors since we should still be able
